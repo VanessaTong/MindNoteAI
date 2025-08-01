@@ -3,6 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 import '../models/client.dart';
 import 'case_note_detail_page.dart';
+import 'package:llama_cpp_dart/llama_cpp_dart.dart';
 
 class ClientDetailPage extends StatefulWidget {
   final Client client;
@@ -22,6 +23,18 @@ class _ClientDetailPageState extends State<ClientDetailPage> {
   final List<String> formats = ['SOAP', 'DAP'];
 
   void _generateCaseNote() async {
+    Llama.libraryPath = "assets/libllama.so";
+
+    final llama = Llama("assets/gemma-3n-E4B-it-UD-IQ2_XXS.gguf");
+
+    llama.setPrompt("2 * 2 = ?");
+    while (true) {
+      var (token, done) = llama.getNext();
+      print(token);
+      if (done) break;
+    }
+    llama.dispose();
+
     await Future.delayed(Duration(seconds: 1));
     final summary = _quickNote.isNotEmpty
         ? _quickNote
