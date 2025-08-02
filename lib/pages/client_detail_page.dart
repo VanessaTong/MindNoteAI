@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:therapy_notes_app/services/ollama_service.dart';
 import '../models/client.dart';
 import 'case_note_detail_page.dart';
 
@@ -22,6 +23,25 @@ class _ClientDetailPageState extends State<ClientDetailPage> {
   final List<String> formats = ['SOAP', 'DAP'];
 
   void _generateCaseNote() async {
+    final ollamaService = OllamaService();
+    const modelToUse =
+        'gemma-test'; // Make sure this model is available or pulled
+    const prompt = 'Tell me a short story about a brave knight.';
+    print('Prompt: "$prompt"');
+
+    final completionResponse = await ollamaService.generateCompletion(
+      modelName: modelToUse,
+      prompt: prompt,
+      stream: false,
+    );
+
+    if (completionResponse != null) {
+      print('Completion:');
+      print(completionResponse);
+    } else {
+      print('Failed to generate completion.');
+    }
+
     await Future.delayed(Duration(seconds: 1));
     final summary = _quickNote.isNotEmpty
         ? _quickNote
