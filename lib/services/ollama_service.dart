@@ -31,6 +31,7 @@ class OllamaService {
             model: modelName,
             prompt: prompt,
             stream: true,
+            format: ResponseFormat.json,
           ),
         );
         await for (final res in streamResponse) {
@@ -43,6 +44,7 @@ class OllamaService {
             model: modelName,
             prompt: prompt,
             stream: false,
+            format: ResponseFormat.json,
           ),
         );
         return generated.response;
@@ -53,45 +55,67 @@ class OllamaService {
     }
   }
 
-  /// Generates a chat completion based on a list of messages.
+  /// A function to generate clinical notes (SOAP or DAP) from a transcript using a generative AI model.
   ///
-  /// [modelName] The name of the Ollama model to use (e.g., 'llama3', 'mistral').
-  /// [messages] A list of [Message] objects representing the conversation history.
-  /// [stream] Whether to stream the response (defaults to false).
+  /// [format]: The desired note format. Can be "soap" or "dap".
+  /// [transcript]: The raw text from the patient-clinician conversation.
   ///
-  /// Returns the generated chat message content as a String, or null if an error occurs.
-  Future<String?> generateChatCompletion({
-    required String modelName,
-    required List<Message> messages,
-    bool stream = false,
-  }) async {
-    try {
-      if (stream) {
-        String fullContent = '';
-        final streamResponse = _client.generateChatCompletionStream(
-          request: GenerateChatCompletionRequest(
-            model: modelName,
-            messages: messages,
-            stream: true,
-          ),
-        );
-        await for (final res in streamResponse) {
-          fullContent += res.message?.content?.trim() ?? '';
-        }
-        return fullContent;
-      } else {
-        final res = await _client.generateChatCompletion(
-          request: GenerateChatCompletionRequest(
-            model: modelName,
-            messages: messages,
-            stream: false,
-          ),
-        );
-        return res.message?.content;
-      }
-    } catch (e) {
-      print('Error generating chat completion: $e');
-      return null;
-    }
+  /// Returns a Future<String> containing the generated notes in JSON format.
+  String generatePromptFromTranscript(String transcript) {
+    // --- Construct the Prompt for the AI Model ---
+    // We build a detailed prompt that tells the model exactly how to behave.
+    // It includes the persona, the required output format (JSON), and examples for both SOAP and DAP notes.
+    final String prompt = """
+      You are an assistant for a mental health company.
+      Your task is to review the audio transcription of a therapy session and generate case notes in first-person perspective, as if the therapist is personally writing them.
+      Follow the specific template selected by the therapist for the session.
+      Ensure the language used is professional, clear, and concise.
+      Only include information explicitly mentioned in the audio, using direct quotes where appropriate to enhance accuracy.
+      Avoid adding interpretations or assumptions beyond what was discussed in the session.
+      Respond only with valid JSON. Do not write an introduction or summary.
+      Here is a sample output for the SOAP template:
+      {{
+          "Subjective": "Generated notes about the patient's subjective experience here.",
+          "Objective": "Generated notes about objective observations and data here.",
+          "Assessment": "Generated assessment and diagnosis here.",
+          "Plan": "Generated treatment plan and next steps here."
+      }}
+
+      Here is the transcription of the therapy session: "$transcript"
+    """;
+
+    return prompt;
+  }
+
+  /// A function to generate clinical notes (SOAP or DAP) from a transcript using a generative AI model.
+  ///
+  /// [format]: The desired note format. Can be "soap" or "dap".
+  /// [transcript]: The raw text from the patient-clinician conversation.
+  ///
+  /// Returns a Future<String> containing the generated notes in JSON format.
+  List<String> generatePrompt(String transcript) {
+    // --- Construct the Prompt for the AI Model ---
+    // We build a detailed prompt that tells the model exactly how to behave.
+    // It includes the persona, the required output format (JSON), and examples for both SOAP and DAP notes.
+    final List<String> prompt = [
+      "You are an assistant for a mental health company.",
+      "Your task is to review the audio transcription of a therapy session and generate case notes in first-person perspective, as if the therapist is personally writing them.",
+      "Follow the specific template selected by the therapist for the session.",
+      "Ensure the language used is professional, clear, and concise.",
+      "Only include information explicitly mentioned in the audio, using direct quotes where appropriate to enhance accuracy.",
+      "Avoid adding interpretations or assumptions beyond what was discussed in the session.",
+      "Respond only with valid JSON. Do not write an introduction or summary.",
+      """Here is a sample output for the SOAP template:
+      {{
+          "Subjective": "Generated notes about the patient's subjective experience here.",
+          "Objective": "Generated notes about objective observations and data here.",
+          "Assessment": "Generated assessment and diagnosis here.",
+          "Plan": "Generated treatment plan and next steps here."
+      }}
+      """,
+      "Here is the transcription of the therapy session: '$transcript'"
+    ];
+
+    return prompt;
   }
 }

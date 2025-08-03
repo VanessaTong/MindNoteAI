@@ -19,43 +19,36 @@ class _ClientDetailPageState extends State<ClientDetailPage> {
   PlatformFile? _pickedFile;
   String _generatedNote = '';
   CaseNote? _activeNote;
+  OllamaService? ollamaService;
 
   final List<String> formats = ['SOAP', 'DAP'];
 
   void _generateCaseNote() async {
-    final ollamaService = OllamaService();
-    const modelToUse =
-        'gemma-test'; // Make sure this model is available or pulled
-    const prompt = 'Tell me a short story about a brave knight.';
-    print('Prompt: "$prompt"');
-
-    final completionResponse = await ollamaService.generateCompletion(
-      modelName: modelToUse,
-      prompt: prompt,
-      stream: false,
-    );
-
-    if (completionResponse != null) {
-      print('Completion:');
-      print(completionResponse);
-    } else {
-      print('Failed to generate completion.');
-    }
-
     await Future.delayed(Duration(seconds: 1));
     final summary = _quickNote.isNotEmpty
         ? _quickNote
         : (_pickedFile != null
             ? 'Content from ${_pickedFile!.name}'
             : 'No input provided.');
+
+    if (ollamaService == null) {
+      ollamaService = OllamaService();
+    }
+
+    final prompt = ollamaService?.generatePromptFromTranscript(summary);
+
+    final output = await ollamaService?.generateCompletion(
+        modelName: 'gemma-test', prompt: prompt!);
+    final soapNote = SoapNote.fromJson(output!);
+
     final note = CaseNote(
-      format: _selectedFormat,
-      date: DateTime.now(),
-      duration: Duration(minutes: 50),
-      summary: summary,
-    );
+        format: _selectedFormat,
+        date: DateTime.now(),
+        duration: Duration(minutes: 50),
+        summary: soapNote.subjective,
+        soapNote: soapNote);
     setState(() {
-      _generatedNote = '[Generated $_selectedFormat note]\n\n$summary';
+      _generatedNote = '[Generated $_selectedFormat note]\n\n$output';
       widget.client.notes.insert(0, note);
       _activeNote = note;
     });
