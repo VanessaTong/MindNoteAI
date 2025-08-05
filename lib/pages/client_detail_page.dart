@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
-import 'package:therapy_notes_app/services/ollama_service.dart';
 import '../models/client.dart';
 import 'case_note_detail_page.dart';
 
@@ -16,51 +14,68 @@ class ClientDetailPage extends StatefulWidget {
 class _ClientDetailPageState extends State<ClientDetailPage> {
   String _selectedFormat = 'SOAP';
   String _quickNote = '';
-  PlatformFile? _pickedFile;
+  String _loadedDescription = ''; // shows loaded audio/image
   String _generatedNote = '';
   CaseNote? _activeNote;
-  OllamaService? ollamaService;
 
   final List<String> formats = ['SOAP', 'DAP'];
 
   void _generateCaseNote() async {
-    await Future.delayed(Duration(seconds: 1));
-    final summary = _quickNote.isNotEmpty
-        ? _quickNote
-        : (_pickedFile != null
-            ? 'Content from ${_pickedFile!.name}'
-            : 'No input provided.');
+    // Simulate delay
+    await Future.delayed(Duration(milliseconds: 300));
 
-    if (ollamaService == null) {
-      ollamaService = OllamaService();
-    }
-
-    final prompt = ollamaService?.generatePromptFromTranscript(summary);
-
-    final output = await ollamaService?.generateCompletion(
-        modelName: 'gemma-test', prompt: prompt!);
-    final soapNote = SoapNote.fromJson(output!);
-
-    final note = CaseNote(
-        format: _selectedFormat,
+    // Hardcoded content based on format
+    if (_selectedFormat == 'SOAP') {
+      final soapNote = SoapNote(
+        subjective: 'Client reports feeling anxious about upcoming work.',
+        objective: 'Fidgeting observed, elevated speech rate.',
+        assessment: 'Generalized anxiety disorder symptoms present.',
+        plan: 'Teach breathing exercises; follow-up in one week.',
+      );
+      final note = CaseNote(
+        format: 'SOAP',
         date: DateTime.now(),
         duration: Duration(minutes: 50),
-        summary: soapNote.subjective,
-        soapNote: soapNote);
+        summary: soapNote.toSummary(),
+        soapNote: soapNote,
+      );
+      setState(() {
+        _generatedNote = soapNote.toSummary();
+        widget.client.notes.insert(0, note);
+        _activeNote = note;
+      });
+    } else {
+      final dapNote = DapNote(
+        data: 'Client completed mood questionnaire; scores elevated.',
+        assessment: 'Mild depressive symptoms with anxiety overlay.',
+        plan: 'Schedule cognitive restructuring session next visit.',
+      );
+      final note = CaseNote(
+        format: 'DAP',
+        date: DateTime.now(),
+        duration: Duration(minutes: 50),
+        summary: dapNote.toSummary(),
+        dapNote: dapNote,
+      );
+      setState(() {
+        _generatedNote = dapNote.toSummary();
+        widget.client.notes.insert(0, note);
+        _activeNote = note;
+      });
+    }
+  }
+
+  void _loadAudio() {
     setState(() {
-      _generatedNote = '[Generated $_selectedFormat note]\n\n$output';
-      widget.client.notes.insert(0, note);
-      _activeNote = note;
+      // Hardcoded behavior: pretend sample.wav was loaded
+      _loadedDescription = 'Loaded: sample.wav';
     });
   }
 
-  void _pickFile() async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.any);
-    if (result != null) {
-      setState(() {
-        _pickedFile = result.files.first;
-      });
-    }
+  void _loadImage() {
+    setState(() {
+      _loadedDescription = 'Loaded: sample.jpg';
+    });
   }
 
   void _selectPrevious(CaseNote note) {
@@ -70,7 +85,10 @@ class _ClientDetailPageState extends State<ClientDetailPage> {
         builder: (_) => EditNotePage(
           note: note,
           onSave: (updated) {
-            setState(() {}); // refresh after edit
+            setState(() {
+              _generatedNote = updated.summary;
+              _selectedFormat = updated.format;
+            });
           },
         ),
       ),
@@ -96,6 +114,65 @@ class _ClientDetailPageState extends State<ClientDetailPage> {
     }
   }
 
+  Widget _buildSummaryCard(CaseNote note) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Last Session: ${DateFormat.yMMMMd().format(note.date)}',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                Text('${note.duration.inMinutes} minutes',
+                    style: TextStyle(color: Colors.grey[600])),
+              ]),
+              Column(
+                children: [
+                  Text('Dr. Sarah Chen'),
+                  SizedBox(height: 4),
+                  Text(note.format + ' Format',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[700])),
+                ],
+              )
+            ],
+          ),
+          SizedBox(height: 12),
+          Text(
+            note.summary,
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildSessionCard(CaseNote note) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      margin: EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(DateFormat.MMMd().format(note.date),
+              style: TextStyle(fontWeight: FontWeight.bold)),
+          SizedBox(height: 4),
+          Text('${note.format} Format • ${note.duration.inMinutes} min',
+              style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+          SizedBox(height: 8),
+          Text(
+            note.summary,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ]),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -109,7 +186,11 @@ class _ClientDetailPageState extends State<ClientDetailPage> {
                   BoxDecoration(color: Colors.white24, shape: BoxShape.circle),
               alignment: Alignment.center,
               child: Text(
-                  widget.client.name.split(' ').map((e) => e[0]).take(2).join(),
+                  widget.client.name
+                      .split(' ')
+                      .map((e) => e.isNotEmpty ? e[0] : '')
+                      .take(2)
+                      .join(),
                   style: TextStyle(color: Colors.white)),
             ),
             SizedBox(width: 12),
@@ -171,7 +252,7 @@ class _ClientDetailPageState extends State<ClientDetailPage> {
                     children: [
                       Expanded(
                         child: GestureDetector(
-                          onTap: _pickFile,
+                          onTap: _loadImage,
                           child: Container(
                             padding: EdgeInsets.symmetric(
                                 vertical: 14, horizontal: 12),
@@ -203,7 +284,7 @@ class _ClientDetailPageState extends State<ClientDetailPage> {
                       SizedBox(width: 12),
                       Expanded(
                         child: GestureDetector(
-                          onTap: _pickFile,
+                          onTap: _loadAudio,
                           child: Container(
                             padding: EdgeInsets.symmetric(
                                 vertical: 14, horizontal: 12),
@@ -234,6 +315,13 @@ class _ClientDetailPageState extends State<ClientDetailPage> {
                       ),
                     ],
                   ),
+                  if (_loadedDescription.isNotEmpty) ...[
+                    SizedBox(height: 8),
+                    Text(_loadedDescription,
+                        style: TextStyle(
+                            fontStyle: FontStyle.italic,
+                            color: Colors.green[700])),
+                  ],
                   SizedBox(height: 16),
                   Text('Select Template Format',
                       style: TextStyle(fontWeight: FontWeight.w600)),
@@ -268,6 +356,23 @@ class _ClientDetailPageState extends State<ClientDetailPage> {
                       ),
                     ),
                   ],
+                  if (_generatedNote.isNotEmpty) ...[
+                    SizedBox(height: 12),
+                    Text('Generated Note Preview:',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
+                    SizedBox(height: 6),
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(8)),
+                      child: Text(
+                        _generatedNote,
+                        style: TextStyle(fontSize: 14),
+                      ),
+                    )
+                  ]
                 ],
               ),
             ),
@@ -289,65 +394,6 @@ class _ClientDetailPageState extends State<ClientDetailPage> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildSummaryCard(CaseNote note) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Last Session: ${DateFormat.yMMMMd().format(note.date)}',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-                Text('${note.duration.inMinutes} minutes',
-                    style: TextStyle(color: Colors.grey[600])),
-              ]),
-              Column(
-                children: [
-                  Text('Dr. Sarah Chen'),
-                  SizedBox(height: 4),
-                  Text(note.format + ' Format',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[700])),
-                ],
-              )
-            ],
-          ),
-          SizedBox(height: 12),
-          Text(
-            note.summary,
-            maxLines: 4,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ]),
-      ),
-    );
-  }
-
-  Widget _buildSessionCard(CaseNote note) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      margin: EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(DateFormat.MMMd().format(note.date),
-              style: TextStyle(fontWeight: FontWeight.bold)),
-          SizedBox(height: 4),
-          Text('${note.format} Format • ${note.duration.inMinutes} min',
-              style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-          SizedBox(height: 8),
-          Text(
-            note.summary,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ]),
       ),
     );
   }

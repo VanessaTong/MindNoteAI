@@ -20,6 +20,7 @@ class CaseNote {
   Duration duration;
   String summary;
   SoapNote? soapNote;
+  DapNote? dapNote;
 
   CaseNote({
     required this.format,
@@ -27,6 +28,7 @@ class CaseNote {
     required this.duration,
     required this.summary,
     this.soapNote,
+    this.dapNote,
   });
 }
 
@@ -36,7 +38,6 @@ class SoapNote {
   final String assessment;
   final String plan;
 
-  // Constructor to initialize the fields.
   SoapNote({
     required this.subjective,
     required this.objective,
@@ -44,16 +45,24 @@ class SoapNote {
     required this.plan,
   });
 
-  // Factory constructor to create a SoapNotes object from a JSON map.
-  // This is often called a "factory constructor" or "fromJson" method.
-  factory SoapNote.fromJson(String input) {
-    final Map<String, dynamic> jsonMap = jsonDecode(input);
+  // For convenience: to get a summary string
+  String toSummary() {
+    return 'Subjective: $subjective\nObjective: $objective\nAssessment: $assessment\nPlan: $plan';
+  }
+}
 
-    return SoapNote(
-      subjective: jsonMap['Subjective'] as String,
-      objective: jsonMap['Objective'] as String,
-      assessment: jsonMap['Assessment'] as String,
-      plan: jsonMap['Plan'] as String,
-    );
+class DapNote {
+  final String data;
+  final String assessment;
+  final String plan;
+
+  DapNote({
+    required this.data,
+    required this.assessment,
+    required this.plan,
+  });
+
+  String toSummary() {
+    return 'Data: $data\nAssessment: $assessment\nPlan: $plan';
   }
 }
