@@ -61,11 +61,11 @@ class OllamaService {
   /// [transcript]: The raw text from the patient-clinician conversation.
   ///
   /// Returns a Future<String> containing the generated notes in JSON format.
-  String generatePromptFromTranscript(String transcript) {
+  String generatePromptFromTranscript(String transcript, String format) {
     // --- Construct the Prompt for the AI Model ---
     // We build a detailed prompt that tells the model exactly how to behave.
     // It includes the persona, the required output format (JSON), and examples for both SOAP and DAP notes.
-    final String prompt = """
+    String prompt = """
       You are an assistant for a mental health company.
       Your task is to review the audio transcription of a therapy session and generate case notes in first-person perspective, as if the therapist is personally writing them.
       Follow the specific template selected by the therapist for the session.
@@ -73,14 +73,29 @@ class OllamaService {
       Only include information explicitly mentioned in the audio, using direct quotes where appropriate to enhance accuracy.
       Avoid adding interpretations or assumptions beyond what was discussed in the session.
       Respond only with valid JSON. Do not write an introduction or summary.
-      Here is a sample output for the SOAP template:
+      """;
+    if (format == "SOAP") {
+      prompt += """
+      Here is a sample output for the $format template:
       {{
           "Subjective": "Generated notes about the patient's subjective experience here.",
           "Objective": "Generated notes about objective observations and data here.",
           "Assessment": "Generated assessment and diagnosis here.",
           "Plan": "Generated treatment plan and next steps here."
       }}
+      """;
+    } else if (format == "DAP") {
+      prompt += """
+      Here is a sample output for the $format template:
+      {{
+          "Data": "The client's reported information and the therapist's observations.",
+          "Assessment": "The therapist's interpretation or analysis of the client's symptoms or behavior.",
+          "Plan": "The treatment plan or next steps to address the client's issues."
+      }}
+      """;
+    }
 
+    prompt += """
       Here is the transcription of the therapy session: "$transcript"
     """;
 
