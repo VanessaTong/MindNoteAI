@@ -3,6 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:therapy_notes_app/services/flutter_gemma_service.dart';
 import 'package:therapy_notes_app/services/ollama_service.dart';
+import 'dart:math';
 import '../models/client.dart';
 import 'case_note_detail_page.dart';
 
@@ -22,6 +23,8 @@ class _ClientDetailPageState extends State<ClientDetailPage> {
   CaseNote? _activeNote;
   OllamaService? ollamaService;
   FlutterGemmaService? flutterGemmaService;
+  Random random = Random();
+  bool isLoading = false;
 
   final List<String> formats = ['SOAP', 'DAP'];
 
@@ -37,12 +40,14 @@ class _ClientDetailPageState extends State<ClientDetailPage> {
       ollamaService = OllamaService();
     }
 
+    isLoading = true;
     final prompt =
         ollamaService?.generatePromptFromTranscript(input, _selectedFormat);
 
     final output = await ollamaService?.generateCompletion(
         modelName: 'gemma-test', prompt: prompt!);
     final generatedNote = GeneratedNote.fromJson(output!);
+    isLoading = false;
 
     String summary = '';
     summary = _selectedFormat == 'SOAP'
@@ -52,7 +57,7 @@ class _ClientDetailPageState extends State<ClientDetailPage> {
     final note = CaseNote(
         format: _selectedFormat,
         date: DateTime.now(),
-        duration: Duration(minutes: 50),
+        duration: Duration(minutes: random.nextInt(60)),
         summary: summary,
         generatedNote: generatedNote);
     setState(() {

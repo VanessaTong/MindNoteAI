@@ -83,21 +83,21 @@ class _EditNotePageState extends State<EditNotePage> {
             ),
             SizedBox(height: 16),
             if (_format == "SOAP") ...[
-              Text('Objective', style: TextStyle(fontWeight: FontWeight.bold)),
-              SizedBox(height: 8),
-              Expanded(
-                child: TextField(
-                  controller: _objectiveController,
-                  maxLines: null,
-                  expands: true,
-                  decoration: InputDecoration(hintText: 'Edit case note...'),
-                ),
-              ),
               Text('Subjective', style: TextStyle(fontWeight: FontWeight.bold)),
               SizedBox(height: 8),
               Expanded(
                 child: TextField(
                   controller: _subjectiveController,
+                  maxLines: null,
+                  expands: true,
+                  decoration: InputDecoration(hintText: 'Edit case note...'),
+                ),
+              ),
+              Text('Objective', style: TextStyle(fontWeight: FontWeight.bold)),
+              SizedBox(height: 8),
+              Expanded(
+                child: TextField(
+                  controller: _objectiveController,
                   maxLines: null,
                   expands: true,
                   decoration: InputDecoration(hintText: 'Edit case note...'),
