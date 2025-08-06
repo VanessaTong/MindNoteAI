@@ -1,6 +1,6 @@
 # 🧠 MindNote AI
 
-A Flutter-based app designed for **mental health professionals** to efficiently track patient progress, manage session notes, and gain insights—leveraging ollama’s Gemma-3n model.
+A Flutter-based app designed for **mental health professionals** to efficiently track patient progress, manage session notes, and gain insights. Leveraging a **fine-tuned** Gemma 3n model on ollama.
 
 ---
 
