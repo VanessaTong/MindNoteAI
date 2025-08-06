@@ -37,7 +37,7 @@ class _ClientDetailPageState extends State<ClientDetailPage> {
 
     if (_pickedFile != null) {
       visionText = await ollamaService!.generateImageCompletion(
-        modelName: 'gemma3-vision',
+        modelName: 'gemma3',
         imageBytes: _pickedFile!.bytes!,
       );
       if (visionText == null) {
