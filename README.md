@@ -64,13 +64,13 @@ d. Download a GGUF file directly from Hugging Face:
 1. **Via web UI:**
 
    - Go to the Hugging Face model page (e.g. `https://huggingface.co/vannotanno/gemma3n-finetune-notes-gguf`).
-   - Click **Download** next to the `.gguf` asset.
+   - Click **Download** next to the `gemma-3n-ft-notes-v2.gguf` asset.
 
 2. **Using the Hugging Face Hub CLI:**
 
    ```bash
    pip install huggingface_hub
-   huggingface-cli download google/gemma-3-vision-gguf --filename gemma3-vision.gguf
+   huggingface-cli download vannotanno/gemma3n-finetune-notes-gguf --filename gemma-3n-ft-notes-v2.gguf
    ```
 
 3. **Using wget or curl:**
