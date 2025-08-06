@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:therapy_notes_app/services/flutter_gemma_service.dart';
+import 'package:therapy_notes_app/services/ollama_service.dart';
+import 'dart:math';
 import '../models/client.dart';
 import 'case_note_detail_page.dart';
 
@@ -18,31 +21,55 @@ class _ClientDetailPageState extends State<ClientDetailPage> {
   PlatformFile? _pickedFile;
   String _generatedNote = '';
   CaseNote? _activeNote;
+  OllamaService? ollamaService;
+  FlutterGemmaService? flutterGemmaService;
+  Random random = Random();
+  bool isLoading = false;
 
   final List<String> formats = ['SOAP', 'DAP'];
 
   void _generateCaseNote() async {
     await Future.delayed(Duration(seconds: 1));
-    final summary = _quickNote.isNotEmpty
+    final input = _quickNote.isNotEmpty
         ? _quickNote
         : (_pickedFile != null
             ? 'Content from ${_pickedFile!.name}'
             : 'No input provided.');
+
+    if (ollamaService == null) {
+      ollamaService = OllamaService();
+    }
+
+    isLoading = true;
+    final prompt =
+        ollamaService?.generatePromptFromTranscript(input, _selectedFormat);
+
+    final output = await ollamaService?.generateCompletion(
+        modelName: 'gemma-test', prompt: prompt!);
+    final generatedNote = GeneratedNote.fromJson(output!);
+    isLoading = false;
+
+    String summary = '';
+    summary = _selectedFormat == 'SOAP'
+        ? generatedNote.subjective!
+        : generatedNote.data!;
+
     final note = CaseNote(
-      format: _selectedFormat,
-      date: DateTime.now(),
-      duration: Duration(minutes: 50),
-      summary: summary,
-    );
+        format: _selectedFormat,
+        date: DateTime.now(),
+        duration: Duration(minutes: random.nextInt(60)),
+        summary: summary,
+        generatedNote: generatedNote);
     setState(() {
-      _generatedNote = '[Generated $_selectedFormat note]\n\n$summary';
+      _generatedNote = '[Generated $_selectedFormat note]\n\n$output';
       widget.client.notes.insert(0, note);
       _activeNote = note;
     });
   }
 
   void _pickFile() async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.any);
+    final result =
+        await FilePicker.platform.pickFiles(withData: true, type: FileType.any);
     if (result != null) {
       setState(() {
         _pickedFile = result.files.first;
@@ -152,74 +179,6 @@ class _ClientDetailPageState extends State<ClientDetailPage> {
                     decoration: InputDecoration(
                         hintText: 'Enter your session notes here...'),
                     onChanged: (v) => _quickNote = v,
-                  ),
-                  SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: _pickFile,
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                                vertical: 14, horizontal: 12),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey[300]!),
-                              color: Colors.white,
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.camera_alt_outlined),
-                                SizedBox(width: 8),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('Upload Image',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold)),
-                                    Text('Photo of notes',
-                                        style: TextStyle(fontSize: 12)),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: _pickFile,
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                                vertical: 14, horizontal: 12),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey[300]!),
-                              color: Colors.white,
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.mic_none),
-                                SizedBox(width: 8),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('Upload Audio',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold)),
-                                    Text('Voice recording',
-                                        style: TextStyle(fontSize: 12)),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
                   ),
                   SizedBox(height: 16),
                   Text('Select Template Format',

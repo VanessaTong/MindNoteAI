@@ -35,6 +35,7 @@ class TherapyApp extends StatelessWidget {
         ),
       ),
       home: HomePage(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }

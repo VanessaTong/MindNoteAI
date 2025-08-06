@@ -13,6 +13,11 @@ class EditNotePage extends StatefulWidget {
 
 class _EditNotePageState extends State<EditNotePage> {
   late TextEditingController _summaryController;
+  late TextEditingController _objectiveController;
+  late TextEditingController _dataController;
+  late TextEditingController _subjectiveController;
+  late TextEditingController _assessmentController;
+  late TextEditingController _planController;
   late String _format;
 
   final List<String> formats = ['SOAP', 'DAP'];
@@ -20,7 +25,16 @@ class _EditNotePageState extends State<EditNotePage> {
   @override
   void initState() {
     super.initState();
-    _summaryController = TextEditingController(text: widget.note.summary);
+    _objectiveController =
+        TextEditingController(text: widget.note.generatedNote?.objective);
+    _subjectiveController =
+        TextEditingController(text: widget.note.generatedNote?.subjective);
+    _dataController =
+        TextEditingController(text: widget.note.generatedNote?.data);
+    _assessmentController =
+        TextEditingController(text: widget.note.generatedNote?.assessment);
+    _planController =
+        TextEditingController(text: widget.note.generatedNote?.plan);
     _format = widget.note.format;
   }
 
@@ -68,11 +82,55 @@ class _EditNotePageState extends State<EditNotePage> {
                       borderRadius: BorderRadius.circular(8))),
             ),
             SizedBox(height: 16),
-            Text('Note Summary', style: TextStyle(fontWeight: FontWeight.bold)),
+            if (_format == "SOAP") ...[
+              Text('Subjective', style: TextStyle(fontWeight: FontWeight.bold)),
+              SizedBox(height: 8),
+              Expanded(
+                child: TextField(
+                  controller: _subjectiveController,
+                  maxLines: null,
+                  expands: true,
+                  decoration: InputDecoration(hintText: 'Edit case note...'),
+                ),
+              ),
+              Text('Objective', style: TextStyle(fontWeight: FontWeight.bold)),
+              SizedBox(height: 8),
+              Expanded(
+                child: TextField(
+                  controller: _objectiveController,
+                  maxLines: null,
+                  expands: true,
+                  decoration: InputDecoration(hintText: 'Edit case note...'),
+                ),
+              ),
+            ],
+            if (_format == "DAP") ...[
+              Text('Data', style: TextStyle(fontWeight: FontWeight.bold)),
+              SizedBox(height: 8),
+              Expanded(
+                child: TextField(
+                  controller: _dataController,
+                  maxLines: null,
+                  expands: true,
+                  decoration: InputDecoration(hintText: 'Edit case note...'),
+                ),
+              ),
+            ],
+            Text('Assessment', style: TextStyle(fontWeight: FontWeight.bold)),
             SizedBox(height: 8),
             Expanded(
               child: TextField(
-                controller: _summaryController,
+                controller: _assessmentController,
+                maxLines: null,
+                expands: true,
+                decoration: InputDecoration(hintText: 'Edit case note...'),
+              ),
+            ),
+            Text('Plan', style: TextStyle(fontWeight: FontWeight.bold)),
+            SizedBox(height: 8),
+            Expanded(
+              child: TextField(
+                controller: _planController,
                 maxLines: null,
                 expands: true,
                 decoration: InputDecoration(hintText: 'Edit case note...'),
