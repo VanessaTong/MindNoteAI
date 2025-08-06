@@ -1,0 +1,1 @@
+ /Users/vanessa/Documents/gemma-case/.dart_tool/flutter_build/69501c51663caaa741f4bc9160787437/native_assets.json: 

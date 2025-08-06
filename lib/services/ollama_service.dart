@@ -1,3 +1,6 @@
+// lib/services/ollama_service.dart
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:ollama_dart/ollama_dart.dart';
 
 /// A service class to interact with the Ollama API.
@@ -6,18 +9,12 @@ class OllamaService {
   final OllamaClient _client;
 
   /// Initializes the OllamaService.
-  /// [baseUrl] is the base URL for the Oll Ollama API.
+  /// [baseUrl] is the base URL for the Ollama API.
   /// Defaults to 'http://localhost:11434/api' if not provided.
   OllamaService({String baseUrl = 'http://10.0.2.2:11434/api'})
       : _client = OllamaClient(baseUrl: baseUrl);
 
   /// Generates a text completion for a given prompt using a specified model.
-  ///
-  /// [modelName] The name of the Ollama model to use (e.g., 'llama3', 'mistral').
-  /// [prompt] The text prompt for which to generate a completion.
-  /// [stream] Whether to stream the response (defaults to false).
-  ///
-  /// Returns the generated response as a String, or null if an error occurs.
   Future<String?> generateCompletion({
     required String modelName,
     required String prompt,
@@ -55,16 +52,36 @@ class OllamaService {
     }
   }
 
-  /// A function to generate clinical notes (SOAP or DAP) from a transcript using a generative AI model.
-  ///
-  /// [format]: The desired note format. Can be "soap" or "dap".
-  /// [transcript]: The raw text from the patient-clinician conversation.
-  ///
-  /// Returns a Future<String> containing the generated notes in JSON format.
+  /// Generates a completion by sending an image to a vision-capable model.
+  Future<String?> generateImageCompletion({
+    required String modelName,
+    required Uint8List imageBytes,
+    String prompt =
+        'only return the content of the image. do not add anything else.',
+    bool stream = false,
+  }) async {
+    try {
+      // Base64-encode the raw bytes so we can pass them as List<String>
+      final String b64 = base64Encode(imageBytes);
+      final generated = await _client.generateCompletion(
+        request: GenerateCompletionRequest(
+          model: modelName,
+          prompt: prompt,
+          images: [b64],
+          stream: stream,
+          format: ResponseFormat.json,
+        ),
+      );
+      print(generated.response);
+      return generated.response;
+    } catch (e) {
+      print('Error generating image completion: $e');
+      return null;
+    }
+  }
+
+  /// A function to generate clinical notes (SOAP or DAP) from a transcript.
   String generatePromptFromTranscript(String transcript, String format) {
-    // --- Construct the Prompt for the AI Model ---
-    // We build a detailed prompt that tells the model exactly how to behave.
-    // It includes the persona, the required output format (JSON), and examples for both SOAP and DAP notes.
     String prompt = """
       You are an assistant for a mental health company.
       Your task is to review the audio transcription of a therapy session and generate case notes in first-person perspective, as if the therapist is personally writing them.
@@ -77,41 +94,31 @@ class OllamaService {
     if (format == "SOAP") {
       prompt += """
       Here is a sample output for the $format template:
-      {{
+      {
           "Subjective": "Generated notes about the patient's subjective experience here.",
           "Objective": "Generated notes about objective observations and data here.",
           "Assessment": "Generated assessment and diagnosis here.",
           "Plan": "Generated treatment plan and next steps here."
-      }}
+      }
       """;
     } else if (format == "DAP") {
       prompt += """
       Here is a sample output for the $format template:
-      {{
+      {
           "Data": "The client's reported information and the therapist's observations.",
           "Assessment": "The therapist's interpretation or analysis of the client's symptoms or behavior.",
           "Plan": "The treatment plan or next steps to address the client's issues."
-      }}
+      }
       """;
     }
-
     prompt += """
       Here is the transcription of the therapy session: "$transcript"
     """;
-
     return prompt;
   }
 
-  /// A function to generate clinical notes (SOAP or DAP) from a transcript using a generative AI model.
-  ///
-  /// [format]: The desired note format. Can be "soap" or "dap".
-  /// [transcript]: The raw text from the patient-clinician conversation.
-  ///
-  /// Returns a Future<String> containing the generated notes in JSON format.
+  /// Another prompt-builder (unchanged).
   List<String> generatePrompt(String transcript) {
-    // --- Construct the Prompt for the AI Model ---
-    // We build a detailed prompt that tells the model exactly how to behave.
-    // It includes the persona, the required output format (JSON), and examples for both SOAP and DAP notes.
     final List<String> prompt = [
       "You are an assistant for a mental health company.",
       "Your task is to review the audio transcription of a therapy session and generate case notes in first-person perspective, as if the therapist is personally writing them.",
@@ -121,16 +128,15 @@ class OllamaService {
       "Avoid adding interpretations or assumptions beyond what was discussed in the session.",
       "Respond only with valid JSON. Do not write an introduction or summary.",
       """Here is a sample output for the SOAP template:
-      {{
+      {
           "Subjective": "Generated notes about the patient's subjective experience here.",
           "Objective": "Generated notes about objective observations and data here.",
           "Assessment": "Generated assessment and diagnosis here.",
           "Plan": "Generated treatment plan and next steps here."
-      }}
+      }
       """,
       "Here is the transcription of the therapy session: '$transcript'"
     ];
-
     return prompt;
   }
 }
